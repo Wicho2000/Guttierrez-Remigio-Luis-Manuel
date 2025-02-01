@@ -1,21 +1,16 @@
 #!/bin/bash
 
-echo -n "Ingresa el primer numero: "
-read num1
-
-<<<<<<< HEAD
-echo -n "Ingresa el segundo numero: "
-read num2
+num1=10
+num2=5
+num3=2
+num4=3  # Nuevo número añadido
 
 suma=$((num1 + num2))
-resta=$((num1 - num2))
+resta=$((suma - num3))
+multiplicacion=$((num1 * num4))  # Nueva operación multiplicación
+division=$((num2 / num3))  # Nueva operación división
 
-echo "La suma de $num1 y $num2 es: $suma"
-echo "La resta de $num1 menos $num2 es : $resta"
-=======
-suma=$((num1 + num2))
-resta=$(($suma - num3))
 echo "La suma de $num1 y $num2 es $suma"
 echo "La resta de $suma y $num3 es $resta"
-
->>>>>>> cf55386 (Guardando cambios antes de hacer pull)
+echo "La multiplicación de $num1 y $num4 es $multiplicacion"
+echo "La división de $num2 entre $num3 es $division"
