@@ -1,0 +1,12 @@
+{
+    "ip": "192.168.19.1",
+    "so": "Windows",
+    "version": [
+        "10",
+        "10.0.19045",
+        "SP0",
+        "Multiprocessor Free"
+    ],
+    "hostname": "NITRO-WICHO",
+    "cpu": "Intel64 Family 6 Model 158 Stepping 10, GenuineIntel"
+}
