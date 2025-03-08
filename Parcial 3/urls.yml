@@ -1,0 +1,7 @@
+---
+- url: https://www.virustotal.com
+  status: 
+- url: https://www.mercadolibre.com
+  status: 403
+- url: https://best.aliexpress.com
+  status: 302

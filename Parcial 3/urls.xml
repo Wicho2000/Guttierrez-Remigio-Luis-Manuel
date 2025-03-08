@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urls>
+  <url>
+    <link>https://www.virustotal.com</link>
+    <status></status>
+  </url>
+  <url>
+    <link>https://www.mercadolibre.com</link>
+    <status>403</status>
+  </url>
+  <url>
+    <link>https://best.aliexpress.com</link>
+    <status>302</status>
+  </url>
+</urls>
