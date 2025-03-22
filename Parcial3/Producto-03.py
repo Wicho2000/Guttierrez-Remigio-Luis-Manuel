@@ -12,7 +12,11 @@ def obtener_juegos():
     data = response.json()
 
     juegos_filtrados = [
-        {"nombre": juego["name"], "lanzamiento": juego["released"]}
+        {
+            "nombre": juego["name"],
+            "lanzamiento": juego["released"],
+            "imagen": juego.get("background_image", "")  # Obtener la URL de la imagen
+        }
         for juego in data.get("results", [])
     ]
     

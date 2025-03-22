@@ -39,6 +39,12 @@
             margin: 5px 0;
             color: #777;
         }
+        .juego img {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -51,6 +57,7 @@
         <div class="juego">
             <h2>{{ juego.nombre }}</h2>
             <p><strong>Lanzamiento:</strong> {{ juego.lanzamiento }}</p>
+            <img src="{{ juego.imagen }}" alt="Imagen de {{ juego.nombre }}">
         </div>
         {% endfor %}
     </div>
