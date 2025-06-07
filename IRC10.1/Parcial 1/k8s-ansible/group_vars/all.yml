@@ -1,0 +1,16 @@
+---
+# Versiones modificadas para Rocky Linux 9
+k8s_version: "1.28"
+container_runtime: "containerd"
+docker_version: "latest"  # Cambiado a "latest" o versión específica disponible
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+
+# Configuración específica del master
+k8s_master_ip: "192.168.48.136"
+k8s_master_hostname: "k8s-master"
+
+# Configuración de los nodos
+k8s_nodes:
+  - ip: "192.168.48.137"
+    hostname: "k8s-node1"

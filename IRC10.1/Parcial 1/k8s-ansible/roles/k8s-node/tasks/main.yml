@@ -1,0 +1,40 @@
+---
+- name: Esperar a que el master esté listo
+  wait_for:
+    host: "{{ k8s_master_ip }}"
+    port: 6443
+    delay: 10
+    timeout: 300
+
+- name: Verificar existencia del comando de unión en el master
+  command: ssh -o ConnectTimeout=15 -o BatchMode=yes root@{{ k8s_master_ip }} "test -f /root/join-command.sh && echo 'EXISTS' || echo 'MISSING'"
+  register: join_file_check
+  changed_when: false
+  retries: 3
+  delay: 5
+  until: join_file_check.rc == 0
+  ignore_errors: yes
+
+- name: Obtener comando de unión desde el master
+  command: ssh -o ConnectTimeout=15 -o BatchMode=yes root@{{ k8s_master_ip }} "cat /root/join-command.sh 2>/dev/null"
+  register: join_command
+  until: join_command.rc == 0 and join_command.stdout != ""
+  retries: 5
+  delay: 10
+  changed_when: false
+  ignore_errors: yes
+
+- name: Mostrar comando de unión para depuración
+  debug:
+    var: join_command.stdout
+  when: join_command.stdout != ""
+
+- name: Unir nodo al clúster
+  command: "{{ join_command.stdout }}"
+  when: join_command.rc == 0 and join_command.stdout != ""
+  register: join_result
+  retries: 3
+  delay: 15
+  until: join_result.rc == 0
+  async: 300
+  poll: 10

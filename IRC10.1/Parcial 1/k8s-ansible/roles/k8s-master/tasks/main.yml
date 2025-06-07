@@ -1,0 +1,55 @@
+---
+- name: Verificar estado de containerd
+  command: ctr version
+  register: containerd_check
+  changed_when: false
+  failed_when: containerd_check.rc != 0
+
+- name: Verificar socket CRI
+  command: crictl --runtime-endpoint unix:///run/containerd/containerd.sock info
+  register: cri_check
+  changed_when: false
+  failed_when: cri_check.rc != 0
+
+- name: Inicializar clúster Kubernetes
+  command: |
+    kubeadm init \
+      --apiserver-advertise-address={{ k8s_master_ip }} \
+      --pod-network-cidr={{ pod_network_cidr }} \
+      --service-cidr={{ service_cidr }} \
+      --cri-socket=unix:///run/containerd/containerd.sock \
+      --upload-certs \
+      --control-plane-endpoint={{ k8s_master_ip }} \
+      --ignore-preflight-errors=all
+  register: kubeadm_init
+  retries: 3
+  delay: 10
+
+- name: Crear directorio .kube para usuario root
+  file:
+    path: /root/.kube
+    state: directory
+    mode: '0755'
+
+- name: Copiar configuración de Kubernetes
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: yes
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Instalar red Flannel
+  command: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+  when: kubeadm_init.rc == 0
+
+- name: Generar comando de unión para nodos
+  copy:
+    dest: /root/join-command.sh
+    content: "{{ kubeadm_init.stdout_lines[-1] }}"
+    mode: '0755'
+
+- name: Mostrar comando de unión
+  debug:
+    msg: "Comando para unir nodos: {{ kubeadm_init.stdout_lines[-1] }}"

@@ -1,0 +1,158 @@
+---
+- name: Actualizar todos los paquetes
+  dnf:
+    name: '*'
+    state: latest
+    update_cache: yes
+
+- name: Instalar paquetes requeridos
+  dnf:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - net-tools
+      - bash-completion
+    state: present
+
+- name: Deshabilitar SELinux
+  selinux:
+    state: disabled
+
+- name: Deshabilitar firewall
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+
+- name: Cargar módulos del kernel necesarios
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - br_netfilter
+    - overlay
+
+- name: Crear archivo de módulos para persistencia
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+      overlay
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Verificar si los módulos están cargados
+  command: lsmod | grep -i "{{ item }}"
+  register: module_check
+  changed_when: false
+  failed_when: false
+  with_items:
+    - br_netfilter
+    - overlay
+
+- name: Configurar sysctl para Kubernetes
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    ignoreerrors: yes
+  with_items:
+    - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+
+- name: Desactivar swap
+  command: swapoff -a
+  changed_when: false
+
+- name: Comentar entrada de swap en /etc/fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^(.*swap.*)$'
+    replace: '#\1'
+
+- name: Instalar runtime de containers
+  block:
+    - name: Instalar containerd y herramientas
+      dnf:
+        name:
+          - containerd
+          - containernetworking-plugins
+          - containers-common
+          - cri-tools
+        state: latest
+
+    - name: Configurar containerd
+      copy:
+        dest: /etc/containerd/config.toml
+        content: |
+          version = 2
+          [plugins]
+            [plugins."io.containerd.grpc.v1.cri"]
+              sandbox_image = "registry.k8s.io/pause:3.8"
+              [plugins."io.containerd.grpc.v1.cri".containerd]
+                disable_snapshot_annotations = true
+                snapshotter = "overlayfs"
+                [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+                  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+                    runtime_type = "io.containerd.runc.v2"
+                    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+                      SystemdCgroup = true
+            [plugins."io.containerd.internal.v1.tracing"]
+              service_name = "containerd"
+        owner: root
+        group: root
+        mode: 0644
+      notify: reiniciar containerd
+
+    - name: Configurar crictl
+      copy:
+        dest: /etc/crictl.yaml
+        content: |
+          runtime-endpoint: unix:///run/containerd/containerd.sock
+          image-endpoint: unix:///run/containerd/containerd.sock
+          timeout: 10
+          debug: false
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Habilitar e iniciar containerd
+      service:
+        name: containerd
+        state: started
+        enabled: yes
+  when: container_runtime == "containerd"
+
+- name: Configurar repositorio de Kubernetes para Rocky Linux 9
+  copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/rpm/
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/rpm/repodata/repomd.xml.key
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Instalar paquetes de Kubernetes
+  dnf:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    disable_excludes: kubernetes
+
+- name: Iniciar y habilitar kubelet
+  service:
+    name: kubelet
+    state: started
+    enabled: yes
