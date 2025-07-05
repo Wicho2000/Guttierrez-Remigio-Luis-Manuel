@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Ansible Web Interface</h1>
+    
+    <form method="POST" action="{{ url_for('run_playbook') }}">
+        <div class="form-group">
+            <label for="playbook">Select Playbook:</label>
+            <select name="playbook" id="playbook" required>
+                {% for playbook in playbooks %}
+                    <option value="{{ playbook }}">{{ playbook }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="extra_vars">Extra Variables (YAML format):</label>
+            <textarea name="extra_vars" id="extra_vars" rows="4"></textarea>
+        </div>
+        
+        <button type="submit">Run Playbook</button>
+    </form>
+{% endblock %}

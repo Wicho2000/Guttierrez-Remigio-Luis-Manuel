@@ -1,0 +1,9 @@
+---
+- name: Example Playbook
+  hosts: all
+  gather_facts: no
+  
+  tasks:
+    - name: Display a message
+      debug:
+        msg: "Hello from Ansible Web UI!"
