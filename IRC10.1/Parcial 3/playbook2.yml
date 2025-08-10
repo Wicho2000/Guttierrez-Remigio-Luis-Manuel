@@ -1,0 +1,80 @@
+---
+- name: Configuracion basica de switch Catalyst
+  hosts: all
+  gather_facts: no
+  vars:
+    hostname: SW-LAB
+    enable_secret: MiPasswordSeguro
+    console_password: MiClaveSegura123
+    banner_message: "Acceso Autorizado Solamente"
+    trunk_interface: GigabitEthernet1/0/1
+    vlans:
+      - { id: 10, name: "VLAN_VENTAS", interface: "GigabitEthernet1/0/2" }
+      - { id: 20, name: "VLAN_SISTEMAS", interface: "GigabitEthernet1/0/3" }
+
+  tasks:
+    - name: Configurar hostname
+      cisco.ios.ios_config:
+        lines:
+          - hostname {{ hostname }}
+
+    - name: Configurar VLANs
+      cisco.ios.ios_config:
+        lines:
+          - vlan {{ item.id }}
+          - name {{ item.name }}
+      loop: "{{ vlans }}"
+
+    - name: Configurar interfaces de acceso
+      cisco.ios.ios_config:
+        lines:
+          - switchport mode access
+          - switchport access vlan {{ item.id }}
+          - description "Puerto para {{ item.name }}"
+        parents:
+          - interface {{ item.interface }}
+      loop: "{{ vlans }}"
+
+    - name: Configurar interfaz troncal
+      cisco.ios.ios_config:
+        lines:
+          - switchport mode trunk
+          - switchport trunk allowed vlan all
+          - description "Puerto Troncal"
+        parents:
+          - interface {{ trunk_interface }}
+
+    - name: Configuración de seguridad - Enable Secret
+      cisco.ios.ios_config:
+        lines:
+          - enable secret {{ enable_secret }}
+
+    - name: Configurar línea de consola
+      cisco.ios.ios_config:
+        lines:
+          - password {{ console_password }}
+          - login
+          - exec-timeout 5 0
+        parents:
+          - line console 0
+
+    - name: Configurar banner
+      cisco.ios.ios_config:
+        lines:
+          - banner motd ^{{ banner_message }}^
+
+    - name: Guardar configuración
+      cisco.ios.ios_config:
+        save_when: always
+
+    - name: Validar configuración
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include hostname
+          - show vlan brief
+          - show interface {{ trunk_interface }} switchport
+      register: validation_output
+
+    - name: Mostrar resultados de validación
+      debug:
+        var: validation_output.stdout_lines
